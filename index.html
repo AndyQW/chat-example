@@ -1,23 +1,29 @@
 <!doctype html>
 <html>
-    <head>
-        <title>Socket.IO chat</title>
-        <style>
-          * { margin: 0; padding: 0; box-sizing: border-box; }
-          body { font: 13px Helvetica, Arial; }
-          form { background: #000; padding: 3px; position: fixed; bottom: 0; width: 100%; }
-          form input { border: 0; padding: 10px; width: 90%; margin-right: .5%; }
-          form button { width: 9%; background: rgb(130, 224, 255); border: none; padding: 10px; }
-          #messages { list-style-type: none; margin: 0; padding: 0; }
-          #messages li { padding: 5px 10px; }
-          #messages li:nth-child(odd) { background: #eee; }
-        </style>
-    </head>
-        <body ng-app="App">
-            <chat-window></chat-window>
-            <script src="https://cdn.socket.io/socket.io-1.2.0.js"></script>
-            <script src="https://cdnjs.cloudflare.com/ajax/libs/angular.js/1.5.8/angular.js"></script>
-            <script type="text/ng-template" id="/chat-window.html">
+  <head>
+    <title>Socket.IO chat</title>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body { font: 13px Helvetica, Arial; }
+      form { background: #000; padding: 3px; position: fixed; bottom: 0; width: 100%; }
+      form input { border: 0; padding: 10px; width: 90%; margin-right: .5%; }
+      form button { width: 9%; background: rgb(130, 224, 255); border: none; padding: 10px; }
+      #messages { list-style-type: none; margin: 0; padding: 0; }
+      #messages li { padding: 5px 10px; }
+      #messages li:nth-child(odd) { background: #eee; }
+    </style>
+  </head>
+  <body ng-app=App" ng-controller="MainController as App">
+      <div>{{product}}</div>
+      <chat-window></chat-window>
+    <ul id="messages"></ul>
+    <form action="">
+      <input id="m" autocomplete="off" /><button>Send</button>
+    </form>
+    <script src="https://cdn.socket.io/socket.io-1.2.0.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/angular.js/1.5.8/angular.js"></script>
+    <script src="http://code.jquery.com/jquery-1.11.1.js"></script>
+             <script type="text/ng-template" id="/chat-window.html">
                 <div id="messages" >
                     <div ng-repeat="message in $ctrl.messages track by $index">{{message}}</div>
                 </div>
@@ -26,74 +32,54 @@
                   <button type="button" ng-click="$ctrl.new_message==''||$ctrl.SendMessage()">Send</button>
                 </form>
             </script>
-            <script>
-                angular.module('ChatClient', [])
-                .service('Messager', function($rootScope){
-                    // --
-                    // Private Properties and Methods
-                    // --
-                    var _messages = [];
-
-                    var socket = io();
-                    // add message to _messages when socket receives message from server
-                    socket.on('chat message', function(message){
-                        $rootScope.$apply(function () {
-                            _messages.push(message);
-                        });
-                    });
-
-                    // --
-                    // Public Methods
-                    // --
-                    return {
-                        /**
-                        * Returns a listing of messages.
-                        *
-                        * @return  {Array}               - reference of private _messages array.
-                        */
-                        GetMessages: function() {
-                            return _messages;
-                        },
-
-                        /**
-                        * Send Messag to Socket Server
-                        * 
-                        * @param {String}   message - text message 
-                        * @return {null}            - Null
-                        */
-                        SendMessage: function(message) {
-                            socket.emit('chat message', message);
-                        }
-                    }
-                });
-
-                angular.module('App', ['ChatClient'])
-                .component('chatWindow', {
-                    templateUrl: '/chat-window.html',
-                    controller: function(Messager) {
-                        // --
-                        // Properties
-                        // --
-                        this.new_message = "";
-                        this.messages = Messager.GetMessages();
-                        
-                        // --
-                        // Methods
-                        // --
-
-                        /**
-                         * SendMessge
-                         * Call Messager Service to send input message to server
-                         *
-                         * @returns {null}                  - Null
-                         */                        
-                        this.SendMessage = function() {
-                            Messager.SendMessage( this.new_message );
-                            this.new_message = '';
-                        };
-                    }
-                })
-                
-            </script>
-    </body>
+    <script>
+        angular.module('ChatClient', [])
+        .service('Messager', function(){
+            var _messages = [];
+            //initialize the socket.io
+            var socket = io();
+            return {
+                GetMessage: function() {
+                    return _messages;
+                }
+            }
+        })
+        angular.module('App', ['ChatClient'])
+        .controller('MainController', function($scope){
+ 		var vm = this;
+		function loadProduct(productId) {
+                    return $http.get('/api/product/' + productId)
+ 			.then(function (productData) {
+ 				return $http.get('/api/productview/' + productId)
+ 				.then(function (productReviews) {
+ 					return {
+ 						product: productData,
+ 						reviews: productReviews
+ 					}
+				});
+ 			});
+		}
+ 		loadProduct(1)
+ 			.then(function (product) {
+	 			vm.product = product;
+                                console.log(product);
+ 			});
+            
+        })
+        .component('chatWindow')
+        
+    </script>
+    <script>
+      var socket = io();
+      $('form').submit(function(){
+        socket.emit('chat message', $('#m').val());
+        $('#m').val('');
+        return false;
+      });
+      socket.on('chat message', function(msg){
+        $('#messages').append($('<li>').text(msg));
+      });
+    </script>
+    
+  </body>
 </html>
